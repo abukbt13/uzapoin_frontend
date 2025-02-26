@@ -1,48 +1,71 @@
 <script setup>
-
-
-import {auth} from "@/composables/auth";
-import {computed, onBeforeMount, onMounted, ref} from "vue";
+import { ref, onMounted } from "vue";
 import axios from "axios";
-import {admin} from "@/composables/admin.js";
-// import Swal from "sweetalert2";
-
-const {authUser, authHeader,currentUser,base_url,storage} = auth()
+import { auth } from "@/composables/auth";
 
 import Category from "@/components/Category.vue";
-import Item from "@/components/Item.vue";
+import ItemOperation from "@/components/ItemOperation.vue";
 
+const { authUser, authHeader, base_url } = auth();
+const items = ref([]);
+const itemOperationRef = ref(null); // Reference to ItemOperation
+
+// Fetch items
+const fetchItems = async () => {
+  try {
+    const response = await axios.get(base_url.value + "items", authHeader);
+    items.value = response.data.items;
+  } catch (error) {
+    console.error("Error fetching items:", error);
+  }
+};
+
+// Call delete function in child
+const callDeleteFunction = (id) => {
+  if (itemOperationRef.value) {
+    itemOperationRef.value.deleteItem(id);
+  }
+};
+
+// Handle new item after saving
+const handleSaveRequest = (data) => {
+  alert(data);
+  fetchItems(); // Refresh items after save
+};
 
 onMounted(() => {
-  authUser()
-})
+  authUser();
+  fetchItems();
+});
 </script>
 
 <template>
-
   <Category />
   <div class="m-4">
+    <!-- Bind ref to the child -->
+    <ItemOperation ref="itemOperationRef" @Saverequest="handleSaveRequest", @item-deleted="fetchItems" />
 
     <table class="table table-bordered">
       <thead>
       <tr class="border">
-        <th colspan="5" scope="col" class="text-center">Clothing items <Item /></th>
-      </tr>
-      <tr class="border">
-        <th scope="col">#</th>
-        <th scope="col">Name</th>
-        <th scope="col">Category</th>
-        <th scope="col">Handle</th>
-        <th scope="col">Operation</th>
+        <th>Name</th>
+        <th>Category</th>
+        <th>Color</th>
+        <th>Size</th>
+        <th>Operations</th>
       </tr>
       </thead>
       <tbody>
-      <tr class="border">
-        <th scope="row">1</th>
-        <td>Mark</td>
-        <td>Otto</td>
-        <td>@mdo</td>
-        <td><router-link to="/category" class="btn btn-primary">View</router-link></td>
+      <tr v-for="item in items" :key="item.id">
+        <td>{{ item.item_name }}</td>
+        <td>{{ item.category }}</td>
+        <td>{{ item.color }}</td>
+        <td>{{ item.size }}</td>
+        <td>
+          <button @click="callDeleteFunction(item.id)" class="btn bg-danger">
+            Delete
+          </button>
+        </td>
       </tr>
       </tbody>
     </table>
